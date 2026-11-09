@@ -3,6 +3,8 @@
 FruitScope 面向中学生的课堂和日常观察。上传一张水果照片，或点「试试示例」选一张照片，再点「开始识别」。结果页展示模型最倾向的类别、得分、前三个候选和水果观察笔记。
 网页调用 `src.predict.Predictor`，沿用训练代码的类别顺序、预处理、温度校准和拒识阈值。
 
+**[在线体验 FruitScope](https://fruitscope-3m8ryhxtd3oowyjrarnwpz.streamlit.app/)**。访客无需登录。可以先用「试试示例」体验一次识别。
+
 ## 本地运行网站
 
 使用标准 CPython 3.12，在仓库根目录执行：
