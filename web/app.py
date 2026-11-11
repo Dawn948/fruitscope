@@ -105,21 +105,21 @@ def format_score(probability: float) -> str:
 
 def show_result(result: dict) -> None:
     best = result["topk"][0]
+    if result.get("scope_rejected") or (best["label"] == config.OTHER_CLASS and not result["rejected"]):
+        st.info("**未识别到支持的水果**\n\n请换一张以一种支持的水果为主体的照片。识别范围可在下方的使用指南查看。")
+        return
     if result["rejected"]:
-        st.warning("这次模型没把握。试试换个角度，让一种水果完整地出现在画面里。")
-    elif best["label"] == config.OTHER_CLASS:
-        st.info("模型更倾向于「其他」。如果你拍的是水果，可以从下方的使用指南看看它是否在识别范围内。")
-    else:
-        score = escape(format_score(best["prob"]))
-        fill = min(100, max(0, best["prob"] * 100))
-        st.html(
-            '<div class="fs-match"><span>这张照片最像</span>'
-            f'<h2>{escape(best["name_cn"])}</h2>'
-            f'<span>模型得分</span><strong>{score}</strong>'
-            f'<div class="fs-meter" aria-hidden="true"><i style="--fs-score: {fill:.4f}%"></i></div></div>'
-        )
-
-    with st.expander("查看前三个候选", expanded=result["rejected"] or best["label"] == config.OTHER_CLASS):
+        st.warning("**暂时无法确认**\n\n这次模型没把握。试试换个角度，让一种水果完整地出现在画面里。")
+        return
+    score = escape(format_score(best["prob"]))
+    fill = min(100, max(0, best["prob"] * 100))
+    st.html(
+        '<div class="fs-match"><span>这张照片最像</span>'
+        f'<h2>{escape(best["name_cn"])}</h2>'
+        f'<span>模型得分</span><strong>{score}</strong>'
+        f'<div class="fs-meter" aria-hidden="true"><i style="--fs-score: {fill:.4f}%"></i></div></div>'
+    )
+    with st.expander("查看前三个候选"):
         for candidate in result["topk"]:
             label = "其他" if candidate["label"] == config.OTHER_CLASS else candidate["name_cn"]
             st.progress(candidate["prob"], text=f'{label} · {format_score(candidate["prob"])}')
@@ -249,8 +249,8 @@ def main() -> None:
         st.markdown("**目前能识别的 10 种水果**")
         st.write("、".join(config.class_cn(label) for label in config.FRUIT_CLASSES))
         st.markdown(
-            "模型只学过上面这些水果类别。遇到不熟悉的照片，它可能给出「其他」，"
-            "也可能把相似的水果认错，比如把柠檬认成橙子。看到结果后，你也可以自己对照外观。"
+            "照片可能不在识别范围内时，页面会提示「未识别到支持的水果」。"
+            "有些陌生物体或相似水果仍可能被认错。看到结果后，你也可以自己对照外观。"
         )
         st.caption(
             "模型：项目训练的 MobileNetV3。训练数据与示例图来源："

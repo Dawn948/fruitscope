@@ -111,3 +111,28 @@ PY=$PY $PY -m src.train --tag E04_broad_unfreeze3 --split data/splits_other_broa
 
 全部指标落在 `experiments/runs.csv`（训练写前半段，`src/calibrate.py` 回填 OOD/ECE 列），
 混淆矩阵在 `docs/curves/cm_*.png`，逐类 P/R/F1 在 `docs/E0*_test.json`。
+
+## 8. 日常物体复测与识别范围判断
+
+原 E04 的「其他」主要由蔬菜样本训练。补充测试引入 Caltech 101 的日常物体、动物和交通工具照片。每类最多取 10 张，并按物体类别分到训练、验证或测试集。测试集的 17 个物体类别未用于训练或选择二分类阈值。原有水果和蔬菜数据按 §7 的宽口径流程重建划分。 [Caltech 101 数据说明](https://data.caltech.edu/records/mzrjq-6wc02)
+
+冻结 E04 的特征提取和水果分类权重，在同一组池化特征上训练一个线性二分类头，区分支持的水果与其他照片。阈值在验证集上选择，保留 E04 已正确识别并接纳的全部验证水果。上线时只有 E04 和二分类头均接纳，页面才显示水果结果。
+
+| 测试输入 | 样本数 | E04 | 加入识别范围判断 |
+| --- | ---: | ---: | ---: |
+| Caltech 101 日常物体，误判为水果 | 170 | 37 | 12 |
+| Kaggle 其他类，误判为支持的水果 | 62 | 6 | 3 |
+| Kaggle 支持的水果，正确识别并接纳 | 118 | 107 | 106 |
+
+例如，测试集中的直升机照片 `helicopter/image_0013.jpg` 原来被判为香蕉，得分约 91.9%。加入二分类头后，网页显示「未识别到支持的水果」。本次复测中仍有 12 张日常物体被误判，另有 1 张原来能正确识别的水果被拒绝。这组数据仅代表所测类别。
+
+重建 §7 的数据划分后，在仓库根目录运行下面的命令。发布用的 `model/fruitscope.pth` 可作为输入，脚本直接复用 E04 的特征和类别输出，重新拟合二分类头。
+
+```bash
+python scripts/train_scope_filter.py \
+    --checkpoint model/fruitscope.pth \
+    --split data/splits_other_broad.json \
+    --caltech /path/to/caltech-101.zip \
+    --output ckpt/fruitscope-with-scope-filter.pth \
+    --report ckpt/scope-report.json
+```

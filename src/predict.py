@@ -20,7 +20,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import config
-from src.model import build_from_checkpoint
+from src.model import build_from_checkpoint, pooled_features
 from src.transforms import build_eval_transform, load_image, tensor_from_path
 from src.utils import iter_files, load_json, set_seed, softmax_np
 
@@ -49,24 +49,38 @@ class Predictor:
         self.transform = build_eval_transform(
             self.img_size, mean=ckpt.get("mean", config.MEAN), std=ckpt.get("std", config.STD)
         )
+        self.scope_filter = ckpt.get("scope_filter")
+        if self.scope_filter is not None:
+            self.scope_weight = self.scope_filter["weight"].to(self.device)
 
     def predict(self, image_path: str | Path | BinaryIO) -> dict:
         """返回 top-k 与拒识结论（threshold 为 None 表示未标定，一律不拒）。"""
         x = tensor_from_path(image_path, self.transform).to(self.device)
+        outside_scope = False
         with torch.no_grad():
-            logits = self.model(x).float().cpu().numpy()
+            if self.scope_filter is None:
+                logits = self.model(x)
+            else:
+                features = pooled_features(self.model, x)
+                scope_score = (features @ self.scope_weight).item() + self.scope_filter["bias"]
+                outside_scope = scope_score < self.scope_filter["threshold"]
+                logits = self.model.classifier(features)
+            logits = logits.float().cpu().numpy()
         probs = softmax_np(logits / max(self.temperature, 1e-6))[0]
         order = np.argsort(-probs)[: self.topk]
         top_label = self.classes[int(order[0])]
-        rejected = bool(self.threshold is not None and float(probs.max()) < float(self.threshold))
+        low_confidence = bool(self.threshold is not None and float(probs.max()) < float(self.threshold))
+        scope_rejected = outside_scope and not low_confidence and top_label != config.OTHER_CLASS
+        rejected = low_confidence or scope_rejected
         return {
             "image": str(image_path) if isinstance(image_path, (str, Path)) else "<image stream>",
             "topk": [{"label": self.classes[i], "name_cn": config.class_cn(self.classes[i]),
                       "prob": float(probs[i])} for i in order],
             "confidence": float(probs.max()),
             "rejected": rejected,
+            "scope_rejected": scope_rejected,
             "threshold": self.threshold,
-            "message": self._message(top_label, rejected),
+            "message": "未识别到支持的水果" if scope_rejected else self._message(top_label, rejected),
         }
 
     @staticmethod

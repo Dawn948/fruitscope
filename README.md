@@ -14,7 +14,7 @@ python -m pip install -r web/requirements.txt
 python -m streamlit run web/app.py
 ```
 
-默认使用随仓库提供的 `model/fruitscope.pth`，由校准后的 E04 权重导出，仅保留网络权重与推理参数。自训权重可放在 `ckpt/E04_broad_unfreeze3_best.pth`，或通过 `FRUITSCOPE_CHECKPOINT` 指定。
+默认使用随仓库提供的 `model/fruitscope.pth`，包含校准后的 E04 权重和一个判断照片是否在识别范围内的二分类头。可以通过 `FRUITSCOPE_CHECKPOINT` 指定其他兼容权重。
 
 接入后先用 `demo/samples/01_correct_apple.jpg` 对照终端输出和网页结果：
 
@@ -36,7 +36,9 @@ python -m src.predict --ckpt model/fruitscope.pth --image demo/samples/01_correc
 
 训练记录中，E04 在 180 张测试图上的准确率为 **90.56%**，宏平均 F1 为 **0.8990**。它能对部分陌生图片给出「其他」或低分提示。一个真实失败例子是把范围外的柠檬判为橙子，模型得分约 99.9%。两者颜色和外形相近可能是原因。详见 [实验记录](docs/experiments.md) 与 [模型训练报告](docs/模型训练报告.md)。
 
-AI 辅助用于网站实现、模型接入、交互测试和发布准备。训练代码、E04 权重和实验记录来自项目已有的训练产物。
+日常物体复测使用 170 张来自未参与二分类头训练的物体类别的照片。被误判为水果的照片从 37 张降至 12 张。118 张支持范围内的测试水果中，正确识别并接纳的照片从 107 张变为 106 张。 [复测数据、限制和训练方法](docs/experiments.md#8-日常物体复测与识别范围判断)
+
+AI 辅助用于网站实现、模型接入、交互测试、发布准备和识别范围复测。E04 权重及原始训练记录来自项目已有的训练产物。
 
 ## 目录
 

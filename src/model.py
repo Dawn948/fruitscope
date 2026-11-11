@@ -64,6 +64,11 @@ def backbone_in_features(model: nn.Module) -> int:
     return int(model.classifier[0].in_features)
 
 
+def pooled_features(model: nn.Module, images: torch.Tensor) -> torch.Tensor:
+    """返回 MobileNetV3 分类头之前的全局池化特征。"""
+    return model.avgpool(model.features(images)).flatten(1)
+
+
 def build_model(arch: str = "mobilenet_v3_large", num_classes: int = NUM_CLASSES_FALLBACK,
                 head: str = "linear", hidden: int = 256, dropout: float = 0.3,
                 pretrained: bool = True) -> nn.Module:
