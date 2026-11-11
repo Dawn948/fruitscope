@@ -249,12 +249,20 @@ def main() -> None:
         st.markdown("**目前能识别的 10 种水果**")
         st.write("、".join(config.class_cn(label) for label in config.FRUIT_CLASSES))
         st.markdown(
-            "照片可能不在识别范围内时，页面会提示「未识别到支持的水果」。"
-            "有些陌生物体或相似水果仍可能被认错。看到结果后，你也可以自己对照外观。"
+            "**怎么看提示**\n\n"
+            "- 「未识别到支持的水果」表示照片可能超出识别范围。\n"
+            "- 「暂时无法确认」表示模型得分偏低，可以换一张主体清晰的照片再试。\n\n"
+            "相似水果和陌生物体仍可能被认错。可以结合观察笔记，自己对照果形、果皮和果梗。"
         )
-        st.caption(
-            "模型：项目训练的 MobileNetV3。训练数据与示例图来源："
-            "[Fruit and Vegetable Image Recognition](https://www.kaggle.com/datasets/kritikseth/fruit-and-vegetable-image-recognition)。"
+        st.markdown(
+            "**模型和资料来源**\n\n"
+            "水果识别使用项目训练的 MobileNetV3。\n\n"
+            "- 水果分类训练和示例照片使用 [Kaggle 水果与蔬菜图片数据集]"
+            "(https://www.kaggle.com/datasets/kritikseth/fruit-and-vegetable-image-recognition)。\n"
+            "- 非水果识别补充使用 [Caltech 101 日常物体照片]"
+            "(https://data.caltech.edu/records/mzrjq-6wc02)，用于训练和复测识别范围判断。\n"
+            f"- 水果观察笔记参考 [UC Davis 果蔬资料]({PRODUCE_REFERENCE})。\n\n"
+            "[查看训练和复测记录](https://github.com/Dawn948/fruitscope/blob/main/docs/experiments.md)"
         )
     st.html('<footer class="fs-footer"><strong>FruitScope</strong><span>水果观察站 · 课堂与日常观察</span></footer>')
 
